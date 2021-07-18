@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Threejs toon shader.</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        overflow: hidden;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.110.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.1/dat.gui.min.js"></script>
+    <script src="assets/js/main.js"></script>
+  </head>
+  <body>
+    <div id="webgl"></div>
+    <script id="js-vertex-shader" type="x-shader/x-shader">
+      attribute vec3 position;
+      attribute vec3 normal;
+      uniform mat4 modelViewMatrix;
+      uniform mat4 projectionMatrix;
+      uniform mat4 normalMatrix;
+      uniform float u_inflate;
+      uniform bool u_isEdge;
+      varying vec3 vNormal;
+
+      void main() {
+        vNormal = (normalMatrix * vec4(normal, 0.0)).xyz;
+        vec3 p = position;
+        if (u_isEdge == true) {
+          p += normal * u_inflate;
+        }
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }
+    </script>
+    <script id="js-fragment-shader" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform vec3 u_lightDirection;
+      uniform vec3 u_globalColor;
+      uniform float u_gradient;
+      uniform bool u_isEdge;
+      varying vec3 vNormal;
+
+      void main() {
+        vec3 light = normalize(u_lightDirection);
+        vec3 normal = normalize(vNormal);
+
+        if (u_isEdge == true) {
+          vec3 rgb = vec3(0.0);
+          gl_FragColor = vec4(rgb, 1.0);
+        }
+
+        if (u_isEdge == false) {
+          // 法線の向きとベクトルの内積の結果から拡散光の計算する
+          // 単位化された内積の結果は、-1.0 ~ 1.0になるので、
+          // (-1.0 ~ 1.0) * 0.5 + 0.5 == (0.0 ~ 1.0) の範囲に代わる
+          float luminance = dot(light, normal) * 0.5 + 0.5;
+
+          // 情報の解像度を落とす
+          // floor(0.4 * 3.0) / 3.0 = 0.333
+          // floor(0.5 * 3.0) / 3.0 = 0.333
+          // floor(0.6 * 3.0) / 3.0 = 0.333
+          // floor(0.7 * 3.0) / 3.0 = 0.666
+          // 一定の範囲内では計算結果が同じになり、つまり解像度が落ちた状態になる          
+          luminance = floor(luminance * u_gradient) / u_gradient;
+          vec3 rgb = vec3(u_globalColor * luminance);
+          gl_FragColor = vec4(rgb, 1.0);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "threejs-toon-shader",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "npx http-server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
