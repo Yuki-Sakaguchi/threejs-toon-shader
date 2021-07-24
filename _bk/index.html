@@ -6,14 +6,6 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Threejs toon shader - Part02</title>
     <style>
-      @keyframes bg-move {
-        0% {
-          background-position: 0 0, 20px 20px;
-        }
-        100% {
-          background-position: 40px 40px, 60px 60px;
-        }
-      }
       * {
         margin: 0;
         padding: 0;
@@ -22,17 +14,11 @@
       body {
         overflow: hidden;
       }
-      body {
-        background-color: #fff;
-        background-size: 40px 40px;
-        background-position: 0 0, 20px 20px;
-        background-image: radial-gradient(#b4f3ea 20%, transparent 20%),
-                          radial-gradient(#ffbcbc 20%, transparent 20%);
-        animation: 2s bg-move infinite linear;
-      }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
     <script src="https://unpkg.com/three@0.110.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.110.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://unpkg.com/three@0.110.0/examples/js/loaders/MTLLoader.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.1/dat.gui.min.js"></script>
     <script src="assets/js/main.js"></script>
   </head>

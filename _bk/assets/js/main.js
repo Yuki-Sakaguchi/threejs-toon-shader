@@ -12,11 +12,11 @@ class Stage {
     this.cameraParam = {
       fav: 45,
       near: 0.1,
-      far: 12000,
+      far: 10000,
       lookAt: new THREE.Vector3(0, 0, 0),
       x: 0,
       y: 1000,
-      z: 10000,
+      z: 2000,
     };
 
     this.scene = null;
@@ -35,8 +35,8 @@ class Stage {
     this._setScene();
     this._setRender();
     this._setCamera();
-    // this.orbitcontrols = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-    // this.orbitcontrols.autoRotate = true;
+    this.orbitcontrols = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.orbitcontrols.autoRotate = true;
     this.isInitialized = true;
   }
 
@@ -46,8 +46,8 @@ class Stage {
   }
 
   _setRender() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-    this.renderer.setClearColor(new THREE.Color(this.renderParam.clearColor), 0);
+    this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+    this.renderer.setClearColor(new THREE.Color(this.renderParam.clearColor));
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
     this.renderer.setSize(this.renderParam.width, this.renderParam.height);
     this.renderer.autoClear = false;
@@ -85,7 +85,7 @@ class Stage {
 
   onRaf() {
     this._render();
-    // this.orbitcontrols.update();
+    this.orbitcontrols.update();
   }
 }
 
@@ -104,13 +104,12 @@ class Mesh {
       tubularSegment: 100,
     };
 
-    // ドーナッツの色は 0.9, 0.5, 0.0
     this.materialParam = {
       useWireframe: false,
       globalColor: {
-        r: 0.5,
-        g: 1.0,
-        b: 1.0,
+        r: 0.9,
+        g: 0.5,
+        b: 0.0,
       }
     };
 
@@ -121,7 +120,7 @@ class Mesh {
       u_lightDirection: { type: 'v3', value: new THREE.Vector3(1.0, 1.0, 1.0) },
       u_globalColor: { type: 'v3', value: new THREE.Vector3(this.materialParam.globalColor.r, this.materialParam.globalColor.g, this.materialParam.globalColor.b) },
       u_gradient: { type: 'f', value: 3.0 }, // グラデーション（解像度)
-      u_inflate: { type: 'f', value: 20.0 }, // エッジラインの太さ
+      u_inflate: { type: 'f', value: 10.0 }, // エッジラインの太さ
       u_isEdge: { type: 'i', value: true },
     };
 
@@ -129,6 +128,7 @@ class Mesh {
 
     this.mesh = null;
     this.meshEdge = null;
+    this.obj = null;
 
     this.windowWidth = 0;
     this.windowHeight = 0;
@@ -139,6 +139,7 @@ class Mesh {
 
   init() {
     this._setWindowSize();
+
     this._setMesh();
   }
 
@@ -154,14 +155,9 @@ class Mesh {
   }
 
   _setMesh() {
-    this.destory();
-
-    const geometry = new THREE.TorusBufferGeometry(
-      this.geometryParam.radius,
-      this.geometryParam.tube,
-      this.geometryParam.radialSegments,
-      this.geometryParam.tubularSegment,
-    );
+    if (this.mesh != null) {
+      this.stage.scene.remove(this.mesh);
+    }
 
     const material = new THREE.RawShaderMaterial({
       vertexShader: document.querySelector("#js-vertex-shader").textContent,
@@ -173,45 +169,35 @@ class Mesh {
       side: THREE.DoubleSide,
     });
 
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.mesh.position.y = 5000;
+    new THREE.MTLLoader()
+      .setPath('assets/model/')
+      .load('blank.mtl', (materials) => {
+        materials.preload();
 
-    if (this.isEdge) {
-      this.meshEdge = new THREE.Mesh(geometry, material);
-      this.meshEdge.position.y = 5000;
-    }
+        new THREE.OBJLoader()
+          .setPath('assets/model/')
+          .setMaterials(materials)
+          .load('animal.obj', (object) => {
+            this.mesh = object;
 
-    this.stage.scene.add(this.mesh);
+            // const objModel = object.clone();
+            // objModel.traverse(function (child) {
+            //   if (child instanceof THREE.Mesh) {
+            //       child.material = material; 
+            //   }
+            // });
+            // objModel.scale.set(1000, 1000, 1000);
+            // objModel.position.set(0, 0, 0);
+            // const obj = new THREE.Object3D();
+            // obj.add(objModel);
+            // this.mesh = obj;
 
-    if (this.isEdge) {
-      this.stage.sceneEdge.add(this.meshEdge);
-    }
+            this.stage.scene.add(this.mesh);
+      });
+    });
   }
 
   _render() {
-    // カリング面を反転させる
-    this.meshEdge.material.side = THREE.FrontSide;
-    this.mesh.material.uniforms.u_isEdge.value = false;
-    this.stage.renderer.render(this.stage.scene, this.stage.camera);
-
-    // エッジライン
-    this.meshEdge.material.side = THREE.BackSide;
-    this.meshEdge.material.uniforms.u_isEdge.value = true;
-    this.stage.renderer.render(this.stage.sceneEdge, this.stage.camera);
-  }
-
-  destory() {
-    if (this.mesh != null) {
-      this.stage.scene.remove(this.mesh);
-      this.mesh.material.dispose();
-      this.mesh.geometry.dispose();
-    }
-
-    if (this.meshEdge != null) {
-      this.stage.sceneEdge.remove(this.meshEdge);
-      this.meshEdge.material.dispose();
-      this.meshEdge.geometry.dispose();
-    }
   }
 
   onResize() {
@@ -224,12 +210,7 @@ class Mesh {
   }
 
   onRaf() {
-    this.mesh.position.y = this.meshEdge.position.y -= 10;
-    this.mesh.rotation.y = this.meshEdge.rotation.y += 3;
-    if (this.mesh.position.y < -1000) {
-      this.destory();
-    }
-    this._render();
+    // this._render();
   }
 }
 
@@ -260,7 +241,6 @@ function init () {
   // -------------------------------------------------------------
 
   const gui = new dat.GUI({ width: 300 });
-  // gui.open();
   gui.close();
 
   let param = {
